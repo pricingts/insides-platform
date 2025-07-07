@@ -1,0 +1,14 @@
+Authlib==1.6.0
+
+google-api-core==2.25.1
+google-api-python-client==2.172.0
+google-auth-oauthlib==1.2.2
+gspread==6.2.1
+numpy==2.3.0
+oauthlib==3.2.2
+openpyxl==3.1.5
+pandas==2.3.0
+PyPDF2==3.0.1
+reportlab==4.4.1
+streamlit==1.45.1
+tzdata==2025.2
