@@ -3,7 +3,7 @@ from forms.pre_orden_form import *
 import pytz
 from utils.helpers import *
 from datetime import datetime
-from services.sheets_writer import *
+from services.sheets_writer import save_order_submission, register_new_client
 from services.pdf_generator.generate_preorden import generate_archives
 
 def show():
@@ -28,10 +28,9 @@ def show():
     start_time = st.session_state["start_time"]
 
     order_info = forms(clients_list)
-    st.write(order_info)
 
     if st.button("Generar PDFs"):
-        # save_anticipo_submission(order_info, start_time)
+        save_order_submission(order_info)
         register_new_client(order_info.get("client"), st.session_state["clients_list"])
         pdf_ventas = generate_archives(order_info, "ventas")
         pdf_costos = generate_archives(order_info, "costos")

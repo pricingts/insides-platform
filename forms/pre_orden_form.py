@@ -187,13 +187,13 @@ def forms(clients_list):
 
         st.button("➕ Add Surcharge", key="add_sale_surcharge", on_click=add_sales_surcharge)
 
-        totals = {}
+        sales_totals = {}
         for surcharge in st.session_state["sales_surcharges"]:
             currency = surcharge["currency"]
-            value = surcharge.get("sale", 0.0)
-            totals[currency] = totals.get(currency, 0.0) + value
+            value = surcharge.get("total", 0.0)
+            sales_totals[currency] = sales_totals.get(currency, 0.0) + value
 
-        for currency, amount in totals.items():
+        for currency, amount in sales_totals.items():
             st.markdown(f"**Total {currency}**: {amount:,.2f} {currency}")
 
     with st.expander("**Costos**", expanded=True):
@@ -240,17 +240,27 @@ def forms(clients_list):
 
         st.button("➕ Add Surcharge", key="add_cost_surcharge", on_click=add_cost_surcharge)
 
-        totals = {}
+        cost_totals = {}
         for surcharge in st.session_state["cost_surcharges"]:
             currency = surcharge["currency"]
-            value = surcharge.get("cost", 0.0)
-            totals[currency] = totals.get(currency, 0.0) + value
+            value = surcharge.get("total", 0.0)
+            cost_totals[currency] = cost_totals.get(currency, 0.0) + value
 
-        for currency, amount in totals.items():
+        for currency, amount in cost_totals.items():
             st.markdown(f"**Total {currency}**: {amount:,.2f} {currency}")
     
     with st.expander("**Comentarios**", expanded=True):
         final_comments = st.text_area('Comentarios Finales', key="final_comments")
+
+    profit_totals = {}
+    all_currencies = set(sales_totals) | set(cost_totals)   # une todas las monedas presentes
+    for currency in all_currencies:
+        sales_amount = sales_totals.get(currency, 0.0)
+        cost_amount  = cost_totals.get(currency, 0.0)
+        profit_totals[currency] = sales_amount - cost_amount
+
+    for currency, amount in profit_totals.items():
+        st.markdown(f"**Profit {currency}**: {amount:,.2f} {currency}")
 
     order_info = {
         "commercial": commercial,
@@ -279,7 +289,7 @@ def forms(clients_list):
         "cost_surcharges": st.session_state.get("cost_surcharges", []),
         "final_comments": final_comments,
     }
-    
+
     st.write(order_info)
 
     return order_info

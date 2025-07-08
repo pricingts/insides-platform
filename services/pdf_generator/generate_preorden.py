@@ -14,6 +14,7 @@ from decimal import Decimal, ROUND_HALF_UP
 # ----------------------------------------------------------------------
 # Utilidad para “wrappear” texto
 # ----------------------------------------------------------------------
+
 def wrapped_draw_string(c, text, x, y, fontName, fontSize, max_width, leading=12):
     words = text.split()
     line, y_offset = "", 0
@@ -48,72 +49,80 @@ _register_fonts()
 # ----------------------------------------------------------------------
 # Capa de datos (overlay)
 # ----------------------------------------------------------------------
-def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_surcharges") -> None:
+
+def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_surcharges", page: int = 1):
     c = canvas.Canvas(overlay_path, pagesize=letter)
-    current_date = datetime.today().strftime("%d/%m/%Y")
+    
+    if page == 1:
+        current_date = datetime.today().strftime("%d/%m/%Y")
 
-    c.setFont(FONT_REGULAR, 6)
-    c.drawString(282, 470, data.get("no_solicitud", "").upper())
+        c.setFont(FONT_REGULAR, 6)
+        c.drawString(282, 470, data.get("no_solicitud", "").upper())
 
-    c.setFont(FONT_BOLD, 7)
-    c.drawString(500, 669, current_date)
+        c.setFont(FONT_BOLD, 7)
+        c.drawString(500, 669, current_date)
 
-    c.setFont(FONT_REGULAR, 7)
-    c.drawString(115, 583, data.get("client", "").upper())
-    c.drawString(95, 573, data.get("customer_phone", "").upper())
-    c.drawString(125, 563, data.get("customer_address", "").upper())
-    c.drawString(170, 553, data.get("customer_account", "").upper())
-    c.drawString(95, 543, data.get("customer_nit", "").upper())
-    c.drawString(120, 533, data.get("customer_contact", "").upper())
-    c.drawString(105, 523, data.get("customer_email", "").upper())
+        c.setFont(FONT_REGULAR, 7)
+        c.drawString(115, 583, data.get("client", "").upper())
+        c.drawString(95, 569, data.get("customer_phone", "").upper())
+        c.drawString(125, 555, data.get("customer_address", "").upper())
+        c.drawString(170, 541, data.get("customer_account", "").upper())
+        c.drawString(95, 527, data.get("customer_nit", "").upper())
+        c.drawString(120, 513, data.get("customer_contact", "").upper())
+        c.drawString(105, 499, data.get("customer_email", "").upper())
 
-    # ----------------------- datos transporte / referencia --------------------
-    c.setFont(FONT_REGULAR, 6)
-    c.drawString(282, 586, data.get("bl_awb", "").upper())
-    c.drawString(282, 546, data.get("pol_aol", "").upper())
-    c.drawString(282, 506, data.get("pod_aod", "").upper())
+        # ----------------------- datos transporte / referencia --------------------
+        c.setFont(FONT_REGULAR, 6)
+        c.drawString(282, 586, data.get("bl_awb", "").upper())
+        c.drawString(282, 546, data.get("pol_aol", "").upper())
+        c.drawString(282, 506, data.get("pod_aod", "").upper())
 
-    c.drawString(442, 586, data.get("shipper", "").upper())
-    c.drawString(442, 546, data.get("consignee", "").upper())
-    ref_text     = data.get("reference", "").upper()
-    max_chars    = 20            # ~ ancho de unos 120 pt a font-size 7 (ajústalo)
-    line_height  = 11           # puntos de separación vertical
-    x_ref        = 442
-    y_ref_start  = 506           # coordenada de la 1.ª línea
+        c.drawString(442, 586, data.get("shipper", "").upper())
+        c.drawString(442, 546, data.get("consignee", "").upper())
+        ref_text     = data.get("reference", "").upper()
+        max_chars    = 20            # ~ ancho de unos 120 pt a font-size 7 (ajústalo)
+        line_height  = 11           # puntos de separación vertical
+        x_ref        = 442
+        y_ref_start  = 506           # coordenada de la 1.ª línea
 
-    c.setFont(FONT_REGULAR, 6)
+        c.setFont(FONT_REGULAR, 6)
 
-    for i, line in enumerate(wrap(ref_text, max_chars)):
-        y = y_ref_start - i * line_height
-        c.drawString(x_ref, y, line)
+        for i, line in enumerate(wrap(ref_text, max_chars)):
+            y = y_ref_start - i * line_height
+            c.drawString(x_ref, y, line)
 
-    # ────────────────── Nombres de contenedor uno debajo de otro ──────────────────
-    c.setFont(FONT_REGULAR, 6)
+        # ────────────────── Nombres de contenedor uno debajo de otro ──────────────────
+        c.setFont(FONT_REGULAR, 6)
 
-    x_pos       = 75          # columna izquierda
-    y_start     = 470         # coordenada Y inicial
-    line_height = 11          # separación vertical
+        x_pos       = 75          # columna izquierda
+        y_start     = 455         # coordenada Y inicial
+        line_height = 11          # separación vertical
 
-    cargo_type = (data.get("cargo_type") or "").strip().lower()
-    container_details = data.get("container_details") or {}
+        cargo_type = (data.get("cargo_type") or "").strip().lower()
+        container_details = data.get("container_details") or {}
 
-    if cargo_type == "carga suelta" or not container_details:
-        unidad = str(data.get("unidad_medida", "")).upper()
-        cantidad = data.get("cantidad_suelta", "")
-        
-        c.drawString(x_pos, y_start,  f"{cantidad} {unidad}")
+        if cargo_type == "carga suelta" or not container_details:
+            unidad = str(data.get("unidad_medida", "")).upper()
+            cantidad = data.get("cantidad_suelta", "")
+            
+            c.drawString(x_pos, y_start,  f"{cantidad} {unidad}")
+        else:
+            for ctype, details in container_details.items():
+                for name in details.get("names", []):
+                    c.drawString(x_pos, y_start, name.upper())
+                    y_start -= line_height
+
+    surcharges = data.get(surcharge_key, [])
+    if page == 1:
+        surcharges_to_draw = surcharges[:10]
+    elif page == 2:
+        surcharges_to_draw = surcharges[10:]
     else:
-        #   ► Caso contenedores
-        for ctype, details in container_details.items():
-            for name in details.get("names", []):
-                c.drawString(x_pos, y_start, name.upper())
-                y_start -= line_height
-
-
+        surcharges_to_draw = []
     # ------------------------------ tabla costos ------------------------------
     table_data = []
 
-    for surcharge in data.get(surcharge_key, []):
+    for surcharge in surcharges_to_draw:
         concept   = surcharge.get("concept", "")
         quantity  = surcharge.get("quantity", 0)
         rate      = surcharge.get("rate", 0)
@@ -142,50 +151,39 @@ def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_su
         ("RIGHTPADDING",  (0, 0), (-1, -1), 1),
     ]))
 
-    totales = defaultdict(Decimal)
 
-    for s in data.get("sales_surcharges", []):
-        currency = s.get("currency", "").upper()
-        total    = Decimal(s.get("total", 0)).quantize(Decimal("0.01"), ROUND_HALF_UP)
-        totales[currency] += total
+    if page == 1:
+        x, y = 10, 358  # Página 1 original
+    elif page == 2:
+        x, y = 10, 560  # Ajuste para subir contenido en la página 2
+    else:
+        x, y = 10, 358  # Default o más páginas
 
-    x, y = 10, 358 
     table.wrapOn(c, 0, 0)
     table.drawOn(c, x, y - table._height)
 
-    label_font   = FONT_BOLD   
-    value_font   = FONT_BOLD
-    font_size    = 8
-    x_label      = 450    
-    x_value      = 510    
-    y_start      = 210        
-    line_height  = 13        
+    is_last_page = (page == 2 or (page == 1 and len(surcharges) <= 10))
 
-    # ── Dibujo ────────────────────────────────────────────────────────────────────
-    c.setFont(label_font, font_size)
+    if is_last_page:
+        totales = defaultdict(Decimal)
+        for s in surcharges:
+            currency = s.get("currency", "").upper()
+            total    = Decimal(s.get("total", 0)).quantize(Decimal("0.01"), ROUND_HALF_UP)
+            totales[currency] += total
 
-    for i, (curr, total) in enumerate(totales.items()):
-        y = y_start - i * line_height
+        x_label, x_value, y_start, line_height = 450, 510, 210, 13
+        c.setFont(FONT_BOLD, 8)
+        for i, (curr, total) in enumerate(totales.items()):
+            y_pos = y_start - i * line_height
+            c.drawString(x_label, y_pos, f"TOTAL {curr}")
+            formatted = f"${total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            c.drawString(x_value, y_pos, formatted)
 
-        c.drawString(x_label, y, f"TOTAL {curr}")
-
-        c.setFont(value_font, font_size)
-        formatted = f"${total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        c.drawString(x_value, y, formatted)   
-        c.setFont(label_font, font_size)        
-    
-    #Notas finales-----------------
-    comments     = data.get("final_comments", "").upper()
-    max_chars    = 110            # ajusta al ancho de tu columna ↔
-    line_height  = 11            # separación vertical
-    x_comments   = 60            # coordenada X donde empiezan las notas
-    y_start      = 120           # coordenada Y de la primera línea
-
-    c.setFont(FONT_REGULAR, 6)
-
-    for i, line in enumerate(wrap(comments, max_chars)):
-        y = y_start - i * line_height
-        c.drawString(x_comments, y, line)
+        comments = data.get("final_comments", "").upper()
+        x_comments, y_comments, max_chars, comments_height = 60, 120, 110, 11
+        c.setFont(FONT_REGULAR, 6)
+        for i, line in enumerate(wrap(comments, max_chars)):
+            c.drawString(x_comments, y_comments - i * comments_height, line)
 
     c.save()
 
@@ -195,8 +193,8 @@ def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_su
 
 def merge_pdfs(template_path, overlay_path, output_path):
     template_pdf = PyPDF2.PdfReader(template_path)
-    overlay_pdf  = PyPDF2.PdfReader(overlay_path)
-    writer       = PyPDF2.PdfWriter()
+    overlay_pdf = PyPDF2.PdfReader(overlay_path)
+    writer = PyPDF2.PdfWriter()
 
     for idx, template_page in enumerate(template_pdf.pages):
         if idx < len(overlay_pdf.pages):
@@ -221,27 +219,55 @@ def generate_pdf(
 
 def generate_archives(quotation_data: dict, variant: str = "ventas"):
 
+    surcharge_key = "sales_surcharges" if variant == "ventas" else "cost_surcharges"
+    num_surcharges = len(quotation_data.get(surcharge_key, []))
+    template_version = "short" if num_surcharges <= 10 else "long"
+
     config = {
         "ventas": {
             "surcharge_key": "sales_surcharges",
-            "template":      "resources/templates/ORDER VENTAS SHADIA 1.pdf",
-            "output":        "resources/output/pre_orden_ventas.pdf",
+            "template": {
+                "short": "resources/templates/ORDER1.pdf",
+                "long": "resources/templates/ORDER2.pdf",
+            },
+            "output": "resources/output/pre_orden_ventas.pdf",
         },
         "costos": {
             "surcharge_key": "cost_surcharges",
-            "template":      "resources/templates/PRE ORDEN COSTOS SHADIA 1.pdf",
-            "output":        "resources/output/pre_orden_costos.pdf",
+            "template": {
+                "short": "resources/templates/PRE_ORDER1.pdf",
+                "long": "resources/templates/PRE_ORDER2.pdf",
+            },
+            "output": "resources/output/pre_orden_costos.pdf",
         },
     }
 
     if variant not in config:
         raise ValueError(f"Variant desconocida: {variant}")
 
-    cfg          = config[variant]
-    overlay_path = f"resources/temp/overlay_{variant}.pdf"
-    os.makedirs(os.path.dirname(overlay_path), exist_ok=True)
+    cfg = config[variant]
+    selected_template = cfg["template"][template_version]
 
-    create_overlay(quotation_data, overlay_path, cfg["surcharge_key"])
-    merge_pdfs(cfg["template"], overlay_path, cfg["output"])
+    pages_needed = 1 if template_version == "short" else 2
+    overlay_paths = []
+
+    for page in range(1, pages_needed + 1):
+        overlay_path = f"resources/temp/overlay_{variant}_page{page}.pdf"
+        os.makedirs(os.path.dirname(overlay_path), exist_ok=True)
+        create_overlay(quotation_data, overlay_path, surcharge_key, page)
+        overlay_paths.append(overlay_path)
+
+    # Combina todas las páginas de overlays generadas en un solo PDF
+    combined_overlay_path = f"resources/temp/combined_overlay_{variant}.pdf"
+    overlay_writer = PyPDF2.PdfWriter()
+
+    for path in overlay_paths:
+        overlay_pdf = PyPDF2.PdfReader(path)
+        overlay_writer.add_page(overlay_pdf.pages[0])
+
+    with open(combined_overlay_path, "wb") as f_out:
+        overlay_writer.write(f_out)
+
+    merge_pdfs(selected_template, combined_overlay_path, cfg["output"])
 
     return cfg["output"]
