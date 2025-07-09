@@ -1,7 +1,23 @@
 import streamlit as st
 import pandas as pd
+from services.sheets_writer import save_new_client_finance
 
-def forms(clients_list):
+def forms(df_clients):
+    if "client_new" in st.session_state:
+        st.session_state["client"] = st.session_state.pop("client_new")
+
+    df_clients = df_clients.drop_duplicates(subset="CLIENTE")
+    clients_list = df_clients["CLIENTE"].dropna().unique().tolist()
+    client_lookup = df_clients.set_index("CLIENTE").to_dict(orient="index")
+
+    customer_phone   = ""
+    customer_address = ""
+    customer_account = ""
+    customer_nit     = ""
+    customer_contact = ""
+    customer_email   = ""
+    new_client_name  = ""
+
     col1, col2 = st.columns(2)
 
     commercial_op = [" ","Pedro Luis Bruges", "Andrés Consuegra", "Ivan Zuluaga", "Sharon Zuñiga",
@@ -18,41 +34,76 @@ def forms(clients_list):
     with st.expander("**Información del Cliente**", expanded=True):
         client = st.selectbox("Selecciona el cliente*", [" "] + ["+ Add New"] + clients_list, key="client")
 
-        new_client_saved = st.session_state.get("new_client_saved", False)
+        if client in client_lookup:
+            client_info = client_lookup[client]
 
-        if client == "+ Add New":
-            st.write("### Add a New Client")
-            new_client_name = st.text_input("Ingresa el Nombre del Cliente:", key="new_client_name")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                customer_phone = st.text_input("Teléfono", value=client_info.get("TELEFONO CONTACTO", ""), key="customer_phone")
+            with col2:
+                customer_address = st.text_input("Dirección", value="", key="customer_address")  # No está en DB
+            with col3:
+                customer_account = st.selectbox("País de Emisión", paises, key="customer_account")
 
-            if st.button("Save Client"):
-                if new_client_name:
-                    if new_client_name not in st.session_state["clients_list"]:
-                        st.session_state["clients_list"].append(new_client_name)
-                        st.session_state["client"] = new_client_name
-                        st.session_state["new_client_saved"] = True
-                        st.success(f"✅ Client '{new_client_name}' saved!")
-                        st.rerun()
-                    else:
-                        st.warning(f"⚠️ Client '{new_client_name}' already exists in the list.")
+            col4, col5, col6 = st.columns(3)
+            with col4:
+                customer_nit = st.text_input("NIT", value=client_info.get("NIT", ""), key="customer_nit")
+            with col5:
+                customer_contact = st.text_input("Contact", value=client_info.get("CONTACTO", ""), key="customer_contact")
+            with col6:
+                customer_email = st.text_input("Email", value=client_info.get("CORREO ELECTRONICO CONTACTO", ""), key="customer_email")
+
+        elif client == "+ Add New":
+            st.write("### Agregar Nuevo Cliente")
+
+            new_client_name = st.text_input("Nombre del Cliente*", key="new_client_name")
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                customer_phone = st.text_input("Teléfono*", key="customer_phone")
+            with col2:
+                customer_address = st.text_input("Dirección", key="customer_address")
+            with col3:
+                customer_account = st.selectbox("País de Emisión", paises, key="customer_account")
+
+            col4, col5, col6 = st.columns(3)
+            with col4:
+                customer_nit = st.text_input("NIT*", key="customer_nit")
+            with col5:
+                customer_contact = st.text_input("Contacto*", key="customer_contact")
+            with col6:
+                customer_email = st.text_input("Correo Electrónico*", key="customer_email")
+
+            if st.button("Guardar Nuevo Cliente"):
+                campos_ok = all([
+                    new_client_name, customer_nit, customer_email,
+                    customer_contact, customer_phone, customer_address,
+                ])
+
+                if not campos_ok:
+                    st.error("⚠️ Por favor completa todos los campos obligatorios marcados con *.")
+                elif new_client_name in clients_list:
+                    st.warning("⚠️ Este cliente ya existe.")
                 else:
-                    st.error("⚠️ Please enter a valid client name.")
+                    new_row = [
+                        customer_nit,
+                        new_client_name,
+                        new_client_name,
+                        customer_email,
+                        customer_contact,
+                        customer_phone,
+                        customer_email,   
+                        customer_address,
+                    ]
+                    try:
+                        save_new_client_finance(new_row)          
+                        st.success(f"✅ Cliente '{new_client_name}' guardado con éxito.")
 
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            customer_phone = st.text_input("Teléfono", key="customer_phone")
-        with col2:
-            customer_address = st.text_input("Dirección", key="customer_address")
-        with col3:
-            customer_account = st.selectbox("País de Emisión", paises, key="customer_account")
+                        st.session_state["client_new"] = new_client_name
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Error al guardar: {e}")
 
-        col4, col5, col6 = st.columns(3)
-        with col4:
-            customer_nit = st.text_input("NIT", key="customer_nit")
-        with col5:
-            customer_contact = st.text_input("Contact", key="customer_contact")
-        with col6:
-            customer_email = st.text_input("Email", key="customer_email")
-        
     with st.expander("**Información de la Carga**", expanded=True):
         col1, col2, col3 = st.columns(3)
 
@@ -213,13 +264,13 @@ def forms(clients_list):
 
             with col1:
                 surcharge["concept"] = st.text_input(f"Concept*", surcharge["concept"], key=f'cost_concept_{i}')
-            
+
             with col2:
                 surcharge["quantity"] = st.number_input(f"Quantity*", surcharge["quantity"], key=f'cost_quantity_{i}')
-            
+
             with col3:
                 surcharge["rate"] = st.number_input(f"Rate*", surcharge["rate"], key=f'cost_rate_{i}')
-            
+
             with col4:
                 computed_total = surcharge["rate"] * surcharge["quantity"]
                 surcharge["total"] = st.number_input(f"Total*", computed_total, key=f'cost_total_{i}')
@@ -265,13 +316,13 @@ def forms(clients_list):
     order_info = {
         "commercial": commercial,
         "no_solicitud": no_solicitud,
-        "client": client,
-        "customer_phone": customer_phone,
-        "customer_address": customer_address,
-        "customer_account": customer_account,
-        "customer_nit": customer_nit,
-        "customer_contact": customer_contact,
-        "customer_email": customer_email,
+        "client": st.session_state.get("client", ""),
+        "customer_phone": st.session_state.get("customer_phone", ""),
+        "customer_address": st.session_state.get("customer_address", ""),
+        "customer_account": st.session_state.get("customer_account", ""),
+        "customer_nit": st.session_state.get("customer_nit", ""),
+        "customer_contact": st.session_state.get("customer_contact", ""),
+        "customer_email": st.session_state.get("customer_email", ""),
         "bl_awb": bl_awb,
         "shipper": shipper,
         "consignee": consignee,
@@ -290,6 +341,6 @@ def forms(clients_list):
         "final_comments": final_comments,
     }
 
-    st.write(order_info)
+    #st.write(order_info)
 
     return order_info

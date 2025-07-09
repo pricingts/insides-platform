@@ -10,28 +10,27 @@ def show():
 
     colombia_timezone = pytz.timezone('America/Bogota')
 
-    if "client" not in st.session_state:
-        st.session_state["client"] = None
+    if "client_finance" not in st.session_state:
+        st.session_state["client_finance"] = None
 
-    if "clients_list" not in st.session_state:
+    if "clients_list_finance" not in st.session_state:
         try:
-            st.session_state["clients_list"] = load_clients()
-            #st.session_state["clients_list"] = load_client_finance()
+            st.session_state["clients_list_finance"] = load_clients_finance()
         except Exception as e:
             st.error(f"Error al cargar la lista de clientes: {e}")
-            st.session_state["clients_list"] = []
+            st.session_state["clients_list_finance"] = []
 
     if "start_time" not in st.session_state or st.session_state["start_time"] is None:
         st.session_state["start_time"] = datetime.now(colombia_timezone)
 
-    clients_list = st.session_state["clients_list"]
+    clients_list_finance = st.session_state["clients_list_finance"]
     start_time = st.session_state["start_time"]
 
-    order_info = forms(clients_list)
+    order_info = forms(clients_list_finance)
 
     if st.button("Generar PDFs"):
         save_order_submission(order_info)
-        register_new_client(order_info.get("client"), st.session_state["clients_list"])
+        register_new_client(order_info.get("client_finance"), st.session_state["clients_list_finance"])
         pdf_ventas = generate_archives(order_info, "ventas")
         pdf_costos = generate_archives(order_info, "costos")
 

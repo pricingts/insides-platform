@@ -4,6 +4,10 @@ from googleapiclient.discovery import build
 import streamlit as st
 from datetime import datetime
 import pytz
+from typing import List
+import streamlit as st
+
+from utils.helpers import get_worksheet, load_clients_finance  
 
 # ============ AUTENTICACIÓN GCP ============
 
@@ -236,3 +240,14 @@ def save_order_submission(order_info: dict):
     except Exception as e:
         st.error(f"Error guardando datos en hoja ORDEN: {e}")
 
+
+def save_new_client_finance(new_row: List[str]) -> None:
+    sheet_id   = st.secrets["general"]["data_clientes"]
+    sheet_name = "clientes"
+    ws = get_worksheet(sheet_id, sheet_name)
+    if ws is None:              
+        st.error("❌ No se pudo acceder a la hoja para guardar el cliente.")
+        return
+    ws.append_row(new_row)
+
+    load_clients_finance.clear() 
