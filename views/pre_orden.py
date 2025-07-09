@@ -40,14 +40,16 @@ def show():
     if "pdf_paths" in st.session_state:
         pdf_ventas, pdf_costos = st.session_state["pdf_paths"]
 
+        no_solicitud = order_info.get("no_solicitud", "")
+
         col1, col2 = st.columns(2)
 
         with col1:
             with open(pdf_ventas, "rb") as f:
                 st.download_button(
                     label="Descargar Orden de Venta",
-                    data=f,                           # puedes pasar el file-like
-                    file_name="Orden_Venta.pdf",
+                    data=f,                       
+                    file_name=f"ORDEN {no_solicitud}.pdf",
                     mime="application/pdf",
                     key="dl_ventas"
                 )
@@ -55,9 +57,9 @@ def show():
         with col2:
             with open(pdf_costos, "rb") as f:
                 st.download_button(
-                    label="Descargar Pre-orden Costo",
+                    label=f"Descargar Pre-orden Costo.pdf",
                     data=f,
-                    file_name="Pre_orden_costo.pdf",
+                    file_name=f"COSTO {no_solicitud}.pdf",
                     mime="application/pdf",
                     key="dl_costos"
                 )

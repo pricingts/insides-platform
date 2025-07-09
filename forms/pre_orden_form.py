@@ -41,7 +41,7 @@ def forms(df_clients):
             with col1:
                 customer_phone = st.text_input("Teléfono", value=client_info.get("TELEFONO CONTACTO", ""), key="customer_phone")
             with col2:
-                customer_address = st.text_input("Dirección", value="", key="customer_address")  # No está en DB
+                customer_address = st.text_input("Dirección", value=client_info.get("DIRECCION", ""), key="customer_address")  # No está en DB
             with col3:
                 customer_account = st.selectbox("País de Emisión", paises, key="customer_account")
 

@@ -123,7 +123,7 @@ def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_su
         table_data = []
 
         for surcharge in surcharges_to_draw:
-            concept   = surcharge.get("concept", "")
+            concept   = surcharge.get("concept", "").upper()
             quantity  = surcharge.get("quantity", 0)
             rate      = surcharge.get("rate", 0)
             total     = surcharge.get("total", rate * quantity)
