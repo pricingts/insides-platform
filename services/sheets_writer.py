@@ -235,7 +235,6 @@ def save_order_submission(order_info: dict):
         ]
 
         worksheet.append_row(row, value_input_option="USER_ENTERED")
-        st.success("Datos de la ORDEN guardados correctamente.")
 
     except Exception as e:
         st.error(f"Error guardando datos en hoja ORDEN: {e}")

@@ -314,7 +314,7 @@ def forms(df_clients):
         st.markdown(f"**Profit {currency}**: {amount:,.2f} {currency}")
 
     order_info = {
-        "commercial": commercial,
+        "commercial": st.session_state.get("commercial", ""),
         "no_solicitud": no_solicitud,
         "client": st.session_state.get("client", ""),
         "customer_phone": st.session_state.get("customer_phone", ""),
@@ -340,7 +340,5 @@ def forms(df_clients):
         "cost_surcharges": st.session_state.get("cost_surcharges", []),
         "final_comments": final_comments,
     }
-
-    #st.write(order_info)
 
     return order_info

@@ -112,57 +112,62 @@ def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_su
                     c.drawString(x_pos, y_start, name.upper())
                     y_start -= line_height
 
-    surcharges = data.get(surcharge_key, [])
-    if page == 1:
-        surcharges_to_draw = surcharges[:10]
-    elif page == 2:
-        surcharges_to_draw = surcharges[10:]
-    else:
-        surcharges_to_draw = []
-    # ------------------------------ tabla costos ------------------------------
-    table_data = []
+        surcharges = data.get(surcharge_key, [])
+        if page == 1:
+            surcharges_to_draw = surcharges[:10]
+        elif page == 2:
+            surcharges_to_draw = surcharges[10:]
+        else:
+            surcharges_to_draw = []
 
-    for surcharge in surcharges_to_draw:
-        concept   = surcharge.get("concept", "")
-        quantity  = surcharge.get("quantity", 0)
-        rate      = surcharge.get("rate", 0)
-        total     = surcharge.get("total", rate * quantity)  # en caso de que 'total' no venga
-        currency  = surcharge.get("currency", "")
+        table_data = []
 
-        table_data.append([
-            concept,                  # Concepto
-            str(quantity),            # Cantidad
-            f"${rate:,.2f}",   # Tarifa / Rate
-            f"${total:,.2f}",  # Total
-            currency                  # Moneda (columna opcional, si tu tabla la usa)
-        ])
+        for surcharge in surcharges_to_draw:
+            concept   = surcharge.get("concept", "")
+            quantity  = surcharge.get("quantity", 0)
+            rate      = surcharge.get("rate", 0)
+            total     = surcharge.get("total", rate * quantity)
+            currency  = surcharge.get("currency", "")
 
-    # Dimensiones de columna
-    col_widths = [180, 150, 20, 130, 50]
-    table      = Table(table_data, colWidths=col_widths)
-    table.setStyle(TableStyle([
-        ("FONTNAME", (0, 0), (-1, -1), FONT_REGULAR),
-        ("FONTSIZE", (0, 0), (-1, -1), 6),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING",    (0, 0), (-1, -1), 0.3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0.3),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 1),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 1),
-    ]))
+            table_data.append([
+                concept,               # Concepto
+                str(quantity),         # Cantidad
+                f"${rate:,.2f}",       # Tarifa / Rate
+                f"${total:,.2f}",      # Total
+                currency,              # Moneda
+            ])
+
+        # ──────────────────────────────────────────────────────────────────────────
+        # Sólo procedemos si HAY datos
+        # ──────────────────────────────────────────────────────────────────────────
+        if table_data:
+            col_widths = [180, 150, 20, 130, 50]
+            table = Table(table_data, colWidths=col_widths)
+
+            table.setStyle(TableStyle([
+                ("FONTNAME",  (0, 0), (-1, -1), FONT_REGULAR),
+                ("FONTSIZE",  (0, 0), (-1, -1), 6),
+                ("ALIGN",     (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN",    (0, 0), (-1, -1), "MIDDLE"),
+                ("TOPPADDING",    (0, 0), (-1, -1), 0.3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0.3),
+                ("LEFTPADDING",   (0, 0), (-1, -1), 1),
+                ("RIGHTPADDING",  (0, 0), (-1, -1), 1),
+            ]))
+
+            # Posición según la página
+            if page == 1:
+                x, y = 10, 358
+            elif page == 2:
+                x, y = 10, 560
+            else:
+                x, y = 10, 358
+
+            table.wrapOn(c, 0, 0)
+            table.drawOn(c, x, y - table._height)
 
 
-    if page == 1:
-        x, y = 10, 358  # Página 1 original
-    elif page == 2:
-        x, y = 10, 560  # Ajuste para subir contenido en la página 2
-    else:
-        x, y = 10, 358  # Default o más páginas
-
-    table.wrapOn(c, 0, 0)
-    table.drawOn(c, x, y - table._height)
-
-    is_last_page = (page == 2 or (page == 1 and len(surcharges) <= 10))
+        is_last_page = (page == 2 or (page == 1 and len(surcharges) <= 10))
 
     if is_last_page:
         totales = defaultdict(Decimal)
