@@ -15,20 +15,24 @@ from decimal import Decimal, ROUND_HALF_UP
 # Utilidad para “wrappear” texto
 # ----------------------------------------------------------------------
 
-def wrapped_draw_string(c, text, x, y, fontName, fontSize, max_width, leading=12):
+def wrap_text(text, max_chars):
+    lines = []
     words = text.split()
-    line, y_offset = "", 0
+    line = ""
     for word in words:
-        test_line = f"{line} {word}".strip()
-        if stringWidth(test_line, fontName, fontSize) <= max_width:
-            line = test_line
+        if len(line + " " + word) <= max_chars:
+            line = f"{line} {word}".strip()
         else:
-            c.drawString(x, y - y_offset, line)
-            y_offset += leading
+            lines.append(line)
             line = word
     if line:
-        c.drawString(x, y - y_offset, line)
-    return y_offset
+        lines.append(line)
+    return lines
+
+def draw_wrapped_string(c, x, y, text, max_chars, line_height=7):
+    lines = wrap_text(text, max_chars)
+    for i, line in enumerate(lines):
+        c.drawString(x, y - i * line_height, line)
 
 # ----------------------------------------------------------------------
 # Registro de fuentes (sobrescribe las advertencias originales)
@@ -73,17 +77,18 @@ def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_su
 
         # ----------------------- datos transporte / referencia --------------------
         c.setFont(FONT_REGULAR, 6)
-        c.drawString(282, 586, data.get("bl_awb", "").upper())
-        c.drawString(282, 546, data.get("pol_aol", "").upper())
-        c.drawString(282, 506, data.get("pod_aod", "").upper())
 
-        c.drawString(442, 586, data.get("shipper", "").upper())
-        c.drawString(442, 546, data.get("consignee", "").upper())
+        draw_wrapped_string(c, 282, 590, data.get("bl_awb", "").upper(), max_chars=20)
+        draw_wrapped_string(c, 282, 550, data.get("pod_aod", "").upper(), max_chars=20)
+        draw_wrapped_string(c, 282, 510, data.get("pol_aol", "").upper(), max_chars=20)
+        draw_wrapped_string(c, 442, 590, data.get("shipper", "").upper(), max_chars=20)
+        draw_wrapped_string(c, 442, 550, data.get("consignee", "").upper(), max_chars=20)
+
         ref_text     = data.get("reference", "").upper()
-        max_chars    = 20            # ~ ancho de unos 120 pt a font-size 7 (ajústalo)
-        line_height  = 11           # puntos de separación vertical
+        max_chars    = 20         
+        line_height  = 11       
         x_ref        = 442
-        y_ref_start  = 506           # coordenada de la 1.ª línea
+        y_ref_start  = 510        
 
         c.setFont(FONT_REGULAR, 6)
 
