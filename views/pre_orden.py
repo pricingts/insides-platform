@@ -5,6 +5,7 @@ from utils.helpers import *
 from datetime import datetime
 from services.sheets_writer import save_order_submission, register_new_client
 from services.pdf_generator.generate_preorden import generate_archives
+from services.sheets_writer import save_surcharges_orden
 
 def show():
 
@@ -31,11 +32,24 @@ def show():
     if st.button("Generar PDFs"):
         save_order_submission(order_info)
         register_new_client(order_info.get("client_finance"), st.session_state["clients_list_finance"])
+
+        try:
+            save_surcharges_orden(
+                order_info.get("no_solicitud", ""),
+                order_info.get("sales_surcharges", []),
+                order_info.get("cost_surcharges", [])
+            )
+            st.success("✅ Recargos guardados en Google Sheets.")
+        except Exception as e:
+            st.error(f"❌ Error al guardar recargos: {e}")
+
+        # Generar PDFs
         pdf_ventas = generate_archives(order_info, "ventas")
         pdf_costos = generate_archives(order_info, "costos")
 
         st.session_state["pdf_paths"] = (pdf_ventas, pdf_costos)
-        st.success("Archivos creados exitosamente")
+        st.success("✅ Archivos PDF creados exitosamente.")
+
 
     if "pdf_paths" in st.session_state:
         pdf_ventas, pdf_costos = st.session_state["pdf_paths"]

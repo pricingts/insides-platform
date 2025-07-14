@@ -14,7 +14,6 @@ from decimal import Decimal, ROUND_HALF_UP
 # ----------------------------------------------------------------------
 # Utilidad para “wrappear” texto
 # ----------------------------------------------------------------------
-
 def wrap_text(text, max_chars):
     lines = []
     words = text.split()
@@ -54,7 +53,7 @@ _register_fonts()
 # Capa de datos (overlay)
 # ----------------------------------------------------------------------
 
-def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_surcharges", page: int = 1):
+def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_surcharges", page: int = 1, apply_markup: bool = False):
     c = canvas.Canvas(overlay_path, pagesize=letter)
     
     if page == 1:
@@ -85,14 +84,19 @@ def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_su
         draw_wrapped_string(c, 442, 550, data.get("consignee", "").upper(), max_chars=20)
 
         ref_text     = data.get("reference", "").upper()
-        max_chars    = 20         
-        line_height  = 11       
+        max_chars    = 20            # ~ ancho de unos 120 pt a font-size 7 (ajústalo)
+        line_height  = 11           # puntos de separación vertical
         x_ref        = 442
-        y_ref_start  = 510        
+        y_ref_start  = 510         # coordenada de la 1.ª línea
 
         c.setFont(FONT_REGULAR, 6)
 
-        for i, line in enumerate(wrap(ref_text, max_chars)):
+        lines = []
+        for paragraph in ref_text.split("\n"):
+            wrapped_lines = wrap(paragraph, max_chars)
+            lines.extend(wrapped_lines if wrapped_lines else [""])
+
+        for i, line in enumerate(lines):
             y = y_ref_start - i * line_height
             c.drawString(x_ref, y, line)
 
@@ -113,8 +117,10 @@ def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_su
             c.drawString(x_pos, y_start,  f"{cantidad} {unidad}")
         else:
             for ctype, details in container_details.items():
+                cont_type = ctype.upper()
                 for name in details.get("names", []):
-                    c.drawString(x_pos, y_start, name.upper())
+                    line_text = f"{name.upper()} - {cont_type}"
+                    c.drawString(x_pos, y_start, line_text)
                     y_start -= line_height
 
         surcharges = data.get(surcharge_key, [])
@@ -171,14 +177,16 @@ def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_su
             table.wrapOn(c, 0, 0)
             table.drawOn(c, x, y - table._height)
 
-
         is_last_page = (page == 2 or (page == 1 and len(surcharges) <= 10))
 
     if is_last_page:
         totales = defaultdict(Decimal)
         for s in surcharges:
             currency = s.get("currency", "").upper()
-            total    = Decimal(s.get("total", 0)).quantize(Decimal("0.01"), ROUND_HALF_UP)
+            base_total = Decimal(s.get("total", 0))
+            if apply_markup:
+                base_total *= Decimal("1.04")  # Aplica 4% si es costos
+            total = base_total.quantize(Decimal("0.01"), ROUND_HALF_UP)
             totales[currency] += total
 
         x_label, x_value, y_start, line_height = 450, 510, 210, 13
@@ -264,7 +272,7 @@ def generate_archives(quotation_data: dict, variant: str = "ventas"):
     for page in range(1, pages_needed + 1):
         overlay_path = f"resources/temp/overlay_{variant}_page{page}.pdf"
         os.makedirs(os.path.dirname(overlay_path), exist_ok=True)
-        create_overlay(quotation_data, overlay_path, surcharge_key, page)
+        create_overlay(quotation_data, overlay_path, surcharge_key, page, apply_markup=(variant == "costos"))
         overlay_paths.append(overlay_path)
 
     # Combina todas las páginas de overlays generadas en un solo PDF

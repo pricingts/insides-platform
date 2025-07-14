@@ -6,7 +6,7 @@ from datetime import datetime
 import pytz
 from typing import List
 import streamlit as st
-
+import pandas as pd
 from utils.helpers import get_worksheet, load_clients_finance  
 
 # ============ AUTENTICACIÓN GCP ============
@@ -250,3 +250,77 @@ def save_new_client_finance(new_row: List[str]) -> None:
     ws.append_row(new_row)
 
     load_clients_finance.clear() 
+
+def clean_sheet_of_solicitud(ws, no_solicitud):
+    no_solicitud_clean = no_solicitud.strip().upper()
+    all_values = ws.get_all_values()
+
+    if not all_values:
+        return
+
+    headers = all_values[0]
+    rows = all_values[1:]
+
+    # Buscar los índices de las filas a borrar (empezando desde fila 2)
+    to_delete = []
+    for i, row in enumerate(rows, start=2):  # Fila 2 = primer dato
+        current = row[0].strip().upper() if len(row) > 0 else ""
+        if current == no_solicitud_clean:
+            to_delete.append(i)
+
+    # Eliminar desde el final hacia el principio para que los índices no se muevan
+    for i in reversed(to_delete):
+        ws.delete_rows(i)
+
+
+
+def save_surcharges_orden(no_solicitud, sales, costs):
+    ventas_ws = get_or_create_worksheet_orden("ventas", ["no_solicitud", "tipo", "concept", "quantity", "rate", "total", "currency"])
+    costos_ws = get_or_create_worksheet_orden("costos", ["no_solicitud", "tipo", "concept", "quantity", "rate", "total", "currency"])
+
+    clean_sheet_of_solicitud(ventas_ws, no_solicitud)
+    clean_sheet_of_solicitud(costos_ws, no_solicitud)
+
+    sales_rows = [
+        [no_solicitud, "venta", s["concept"], s["quantity"], s["rate"], s["total"], s["currency"]]
+        for s in sales
+    ]
+    cost_rows = [
+        [no_solicitud, "costo", c["concept"], c["quantity"], c["rate"], c["total"], c["currency"]]
+        for c in costs
+    ]
+
+    for row in sales_rows:
+        ventas_ws.append_row(row)
+    for row in cost_rows:
+        costos_ws.append_row(row)
+
+def load_surcharges_by_case_orden(no_solicitud):
+    ventas_ws = get_or_create_worksheet_orden("ventas")
+    costos_ws = get_or_create_worksheet_orden("costos")
+
+    ventas_data = ventas_ws.get_all_records()
+    costos_data = costos_ws.get_all_records()
+
+    if not ventas_data and not costos_data:
+        return [], []
+
+    ventas_df = pd.DataFrame(ventas_data)
+    costos_df = pd.DataFrame(costos_data)
+
+    if "no_solicitud" not in ventas_df.columns or "no_solicitud" not in costos_df.columns:
+        raise ValueError("Las hojas no contienen la columna 'no_solicitud'.")
+
+    no_solicitud_clean = no_solicitud.strip().upper()
+
+    ventas_df["no_solicitud"] = ventas_df["no_solicitud"].astype(str).str.strip().str.upper()
+    costos_df["no_solicitud"] = costos_df["no_solicitud"].astype(str).str.strip().str.upper()
+
+    ventas_match = ventas_df[ventas_df["no_solicitud"] == no_solicitud_clean]
+    costos_match = costos_df[costos_df["no_solicitud"] == no_solicitud_clean]
+
+    ventas_list = ventas_match[["concept", "quantity", "rate", "total", "currency"]].to_dict(orient="records")
+    costos_list = costos_match[["concept", "quantity", "rate", "total", "currency"]].to_dict(orient="records")
+
+    return ventas_list, costos_list
+

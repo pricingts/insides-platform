@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from services.sheets_writer import save_new_client_finance
+from services.sheets_writer import save_new_client_finance, load_surcharges_by_case_orden
 
 def forms(df_clients):
     if "client_new" in st.session_state:
@@ -30,6 +30,21 @@ def forms(df_clients):
         commercial = st.selectbox("Comercial*", commercial_op, key="commercial")
     with col2:
         no_solicitud = st.text_input("Número del Caso (M)*", key="no_solicitud")
+    
+    if no_solicitud and not st.session_state.get("data_loaded"):
+        try:
+
+            ventas_data, costos_data = load_surcharges_by_case_orden(no_solicitud)
+
+            if ventas_data:
+                st.session_state["sales_surcharges"] = ventas_data
+            if costos_data:
+                st.session_state["cost_surcharges"] = costos_data
+
+            st.session_state["data_loaded"] = True
+            st.rerun()
+        except Exception as e:
+            st.error(f"⚠️ Error al cargar recargos: {e}")
 
     with st.expander("**Información del Cliente**", expanded=True):
         client = st.selectbox("Selecciona el cliente*", [" "] + ["+ Add New"] + clients_list, key="client")
@@ -181,7 +196,7 @@ def forms(df_clients):
                 unidad_medida = st.selectbox("Unidad de Medida*", ['KG', 'CBM', 'KV'], key='unidad_medida')
 
             with col7:
-                cant_suelta = st.number_input('Cantidad*', min_value=0, step=1, key='cantidad_suelta')
+                cant_suelta = st.number_input('Cantidad*', min_value=0.0, step=0.1, key='cantidad_suelta')
         
         insurance = st.checkbox('Requiere Seguro', key='insurance')
         if insurance:
@@ -204,7 +219,7 @@ def forms(df_clients):
                 st.session_state["sales_surcharges"].pop(index)
 
         def add_sales_surcharge():
-            st.session_state["sales_surcharges"].append({"concept": "", "quantity": 0, "rate": 0.0 , "total": 0.0, "currency": "USD"})
+            st.session_state["sales_surcharges"].append({"concept": "", "quantity": 0.0, "rate": 0.0 , "total": 0.0, "currency": "USD"})
 
         for i, surcharge in enumerate(st.session_state["sales_surcharges"]):
             col1, col2, col3, col4, col5, col6 = st.columns([2.5, 0.5, 0.8, 0.8, 0.7, 0.5])
@@ -256,7 +271,7 @@ def forms(df_clients):
                 st.session_state["cost_surcharges"].pop(index)
 
         def add_cost_surcharge():
-            st.session_state["cost_surcharges"].append({"concept": "", "quantity": 0, "rate": 0.0 , "total": 0.0, "currency": "USD"})
+            st.session_state["cost_surcharges"].append({"concept": "", "quantity": 0.0, "rate": 0.0 , "total": 0.0, "currency": "USD"})
 
         for i, surcharge in enumerate(st.session_state["cost_surcharges"]):
 
