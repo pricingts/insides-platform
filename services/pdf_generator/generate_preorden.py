@@ -60,7 +60,7 @@ def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_su
         current_date = datetime.today().strftime("%d/%m/%Y")
 
         c.setFont(FONT_REGULAR, 6)
-        c.drawString(282, 470, data.get("no_solicitud", "").upper())
+        c.drawString(442, 590, data.get("no_solicitud", "").upper()) 
 
         c.setFont(FONT_BOLD, 7)
         c.drawString(500, 669, current_date)
@@ -78,16 +78,16 @@ def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_su
         c.setFont(FONT_REGULAR, 6)
 
         draw_wrapped_string(c, 282, 590, data.get("bl_awb", "").upper(), max_chars=20)
-        draw_wrapped_string(c, 282, 550, data.get("pod_aod", "").upper(), max_chars=20)
+        draw_wrapped_string(c, 442, 510, data.get("pod_aod", "").upper(), max_chars=20)
         draw_wrapped_string(c, 282, 510, data.get("pol_aol", "").upper(), max_chars=20)
-        draw_wrapped_string(c, 442, 590, data.get("shipper", "").upper(), max_chars=20)
+        draw_wrapped_string(c, 282, 550, data.get("shipper", "").upper(), max_chars=20)
         draw_wrapped_string(c, 442, 550, data.get("consignee", "").upper(), max_chars=20)
 
-        ref_text     = data.get("reference", "").upper()
+        ref_text     = data.get("reference", "").upper() 
         max_chars    = 20            # ~ ancho de unos 120 pt a font-size 7 (ajústalo)
         line_height  = 11           # puntos de separación vertical
-        x_ref        = 442
-        y_ref_start  = 510         # coordenada de la 1.ª línea
+        x_ref        = 282
+        y_ref_start  = 470         # coordenada de la 1.ª línea
 
         c.setFont(FONT_REGULAR, 6)
 
