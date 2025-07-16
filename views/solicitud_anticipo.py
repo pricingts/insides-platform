@@ -39,7 +39,7 @@ def show():
             for error in errors:
                 st.error(error)
         else:
-            save_anticipo_submission(request_data, start_time)
+            save_anticipo_submission(request_data)
 
             st.success("Information saved successfully!")
 

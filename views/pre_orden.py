@@ -50,7 +50,6 @@ def show():
         st.session_state["pdf_paths"] = (pdf_ventas, pdf_costos)
         st.success("✅ Archivos PDF creados exitosamente.")
 
-
     if "pdf_paths" in st.session_state:
         pdf_ventas, pdf_costos = st.session_state["pdf_paths"]
 
