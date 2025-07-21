@@ -14,6 +14,7 @@ from decimal import Decimal, ROUND_HALF_UP
 # ----------------------------------------------------------------------
 # Utilidad para “wrappear” texto
 # ----------------------------------------------------------------------
+
 def wrap_text(text, max_chars):
     lines = []
     words = text.split()
@@ -55,7 +56,10 @@ _register_fonts()
 
 def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_surcharges", page: int = 1, apply_markup: bool = False):
     c = canvas.Canvas(overlay_path, pagesize=letter)
-    
+
+    surcharges = data.get(surcharge_key, [])
+    is_last_page = False
+
     if page == 1:
         current_date = datetime.today().strftime("%d/%m/%Y")
 
@@ -67,12 +71,27 @@ def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_su
 
         c.setFont(FONT_REGULAR, 7)
         c.drawString(115, 583, data.get("client", "").upper())
-        c.drawString(95, 569, data.get("customer_phone", "").upper())
-        c.drawString(125, 555, data.get("customer_address", "").upper())
-        c.drawString(170, 541, data.get("customer_account", "").upper())
-        c.drawString(95, 527, data.get("customer_nit", "").upper())
-        c.drawString(120, 513, data.get("customer_contact", "").upper())
-        c.drawString(105, 499, data.get("customer_email", "").upper())
+        c.drawString(170, 569, data.get("customer_account", "").upper())
+        c.drawString(95, 555, data.get("customer_nit", "").upper())
+        c.drawString(105, 540, data.get("customer_email", "").upper())
+
+        address_text = data.get("customer_address", "").upper()
+
+        max_chars    = 30   
+        line_height  = 11       
+        x_address    = 125
+        y_address_start = 527
+
+        c.setFont(FONT_REGULAR, 7) 
+
+        lines = []
+        for paragraph in address_text.split("\n"):
+            wrapped_lines = wrap(paragraph, max_chars)
+            lines.extend(wrapped_lines if wrapped_lines else [""])
+
+        for i, line in enumerate(lines):
+            y = y_address_start - i * line_height
+            c.drawString(x_address, y, line)
 
         # ----------------------- datos transporte / referencia --------------------
         c.setFont(FONT_REGULAR, 6)
@@ -103,9 +122,12 @@ def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_su
         # ────────────────── Nombres de contenedor uno debajo de otro ──────────────────
         c.setFont(FONT_REGULAR, 6)
 
-        x_pos       = 75          # columna izquierda
-        y_start     = 455         # coordenada Y inicial
-        line_height = 11          # separación vertical
+        # Configuración de columnas
+        x_start     = 75        # Columna izquierda
+        x_gap       = 115       # Distancia horizontal entre columnas
+        y_start     = 455       # Coordenada Y inicial
+        line_height = 11        # Separación vertical
+        max_rows    = 5         # Máximo de filas antes de pasar a la siguiente columna
 
         cargo_type = (data.get("cargo_type") or "").strip().lower()
         container_details = data.get("container_details") or {}
@@ -113,17 +135,26 @@ def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_su
         if cargo_type == "carga suelta" or not container_details:
             unidad = str(data.get("unidad_medida", "")).upper()
             cantidad = data.get("cantidad_suelta", "")
-            
-            c.drawString(x_pos, y_start,  f"{cantidad} {unidad}")
+            c.drawString(x_start, y_start, f"{cantidad} {unidad}")
         else:
+            row_count = 0
+            col_count = 0
             for ctype, details in container_details.items():
                 cont_type = ctype.upper()
                 for name in details.get("names", []):
+                    # Calcular posición en función de la columna
+                    x_pos = x_start + (col_count * x_gap)
+                    y_pos = y_start - (row_count * line_height)
+                    
                     line_text = f"{name.upper()} - {cont_type}"
-                    c.drawString(x_pos, y_start, line_text)
-                    y_start -= line_height
+                    c.drawString(x_pos, y_pos, line_text)
+                    
+                    row_count += 1
+                    if row_count >= max_rows:
+                        row_count = 0
+                        col_count += 1  # Avanzar a la siguiente columna
 
-        surcharges = data.get(surcharge_key, [])
+
         if page == 1:
             surcharges_to_draw = surcharges[:10]
         elif page == 2:
@@ -166,19 +197,48 @@ def create_overlay(data: dict, overlay_path: str, surcharge_key: str = "sales_su
                 ("RIGHTPADDING",  (0, 0), (-1, -1), 1),
             ]))
 
-            # Posición según la página
-            if page == 1:
-                x, y = 10, 358
-            elif page == 2:
-                x, y = 10, 560
-            else:
-                x, y = 10, 358
-
+            x, y = 10, 358
             table.wrapOn(c, 0, 0)
             table.drawOn(c, x, y - table._height)
 
-        is_last_page = (page == 2 or (page == 1 and len(surcharges) <= 10))
+        # Definir si esta es la última página
+        is_last_page = (len(surcharges) <= 10)
 
+    elif page == 2:
+        # Dibujar solo recargos de la página 2
+        surcharges_to_draw = surcharges[10:]
+        table_data = []
+        for surcharge in surcharges_to_draw:
+            concept   = surcharge.get("concept", "").upper()
+            quantity  = surcharge.get("quantity", 0)
+            rate      = surcharge.get("rate", 0)
+            total     = surcharge.get("total", rate * quantity)
+            currency  = surcharge.get("currency", "")
+            table_data.append([
+                concept, str(quantity), f"${rate:,.2f}", f"${total:,.2f}", currency,
+            ])
+
+        if table_data:
+            col_widths = [180, 150, 20, 130, 50]
+            table = Table(table_data, colWidths=col_widths)
+            table.setStyle(TableStyle([
+                ("FONTNAME",  (0, 0), (-1, -1), FONT_REGULAR),
+                ("FONTSIZE",  (0, 0), (-1, -1), 6),
+                ("ALIGN",     (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN",    (0, 0), (-1, -1), "MIDDLE"),
+                ("TOPPADDING",    (0, 0), (-1, -1), 0.3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0.3),
+                ("LEFTPADDING",   (0, 0), (-1, -1), 1),
+                ("RIGHTPADDING",  (0, 0), (-1, -1), 1),
+            ]))
+            x, y = 10, 560
+            table.wrapOn(c, 0, 0)
+            table.drawOn(c, x, y - table._height)
+
+        # Página 2 siempre es la última
+        is_last_page = True
+
+    # ------------------- Totales y comentarios -------------------
     if is_last_page:
         totales = defaultdict(Decimal)
         for s in surcharges:
@@ -225,15 +285,6 @@ def merge_pdfs(template_path, overlay_path, output_path):
 # ----------------------------------------------------------------------
 # Función pública que genera el PDF
 # ----------------------------------------------------------------------
-def generate_pdf(
-    quotation_data: dict,
-    template_path="resources/templates/PRE ORDEN COSTOS 1.pdf",
-    output_path="resources/output/pre_orden_ventas.pdf",
-    overlay_path="resources/templates/overlay.pdf",
-):
-    create_overlay(quotation_data, overlay_path)
-    merge_pdfs(template_path, overlay_path, output_path)
-    return output_path
 
 def generate_archives(quotation_data: dict, variant: str = "ventas"):
 
