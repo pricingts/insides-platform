@@ -24,13 +24,13 @@ def forms(df_clients):
             "Johnny Farah", "Felipe Hoyos", "Jorge Sánchez",
             "Irina Paternina", "Stephanie Bruges"]
     
-    paises = ["Colombia", "Estados Unidos", "Ecuador", "Mexico"]
+    paises = ["Colombia", "Estados Unidos", "Ecuador", "Mexico", "Panama"]
 
     with col1:
         commercial = st.selectbox("Comercial*", commercial_op, key="commercial")
     with col2:
         no_solicitud = st.text_input("Número del Caso (M)*", key="no_solicitud")
-    
+
     if no_solicitud and not st.session_state.get("data_loaded"):
         try:
 
