@@ -24,7 +24,7 @@ def forms(df_clients):
             "Johnny Farah", "Felipe Hoyos", "Jorge Sánchez",
             "Irina Paternina", "Stephanie Bruges"]
     
-    paises = ["Colombia", "Estados Unidos", "Ecuador", "Mexico", "Panama"]
+    paises = ["Colombia", "Estados Unidos", "Ecuador", "Mexico", "Panama", "Chile"]
 
     with col1:
         commercial = st.selectbox("Comercial*", commercial_op, key="commercial")
