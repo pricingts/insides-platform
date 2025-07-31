@@ -54,7 +54,7 @@ def forms(df_clients):
 
             col1, col2, col3 = st.columns(3)
             with col1:
-                customer_phone = st.text_input("Teléfono", value=client_info.get("TELEFONO CONTACTO", ""), key="customer_phone")
+                customer_phone = st.text_input("Teléfono", value=client_info.get("TELEFONO_CONTACTO", ""), key="customer_phone")
             with col2:
                 customer_address = st.text_input("Dirección", value=client_info.get("DIRECCION", ""), key="customer_address")  # No está en DB
             with col3:
@@ -66,7 +66,7 @@ def forms(df_clients):
             with col5:
                 customer_contact = st.text_input("Contact", value=client_info.get("CONTACTO", ""), key="customer_contact")
             with col6:
-                customer_email = st.text_input("Email", value=client_info.get("CORREO ELECTRONICO CONTACTO", ""), key="customer_email")
+                customer_email = st.text_input("Email", value=client_info.get("CORREO_CONTACTO", ""), key="customer_email")
 
         elif client == "+ Add New":
             st.write("### Agregar Nuevo Cliente")
